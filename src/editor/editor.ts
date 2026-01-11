@@ -7,7 +7,7 @@ import {
 import { history, redo, undo } from "prosemirror-history";
 import { keymap } from "prosemirror-keymap";
 import { Node } from "prosemirror-model";
-import { EditorState } from "prosemirror-state";
+import { EditorState, Selection } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { schema } from "./schema";
 
@@ -50,6 +50,14 @@ export function setContent(view: EditorView, content: unknown): void {
 
 export function onChange(view: EditorView, callback: () => void): void {
   changeListeners.set(view, callback);
+}
+
+export function focusAtEnd(view: EditorView): void {
+  const end = view.state.doc.content.size;
+  view.dispatch(
+    view.state.tr.setSelection(Selection.near(view.state.doc.resolve(end))),
+  );
+  view.focus();
 }
 
 export function doUndo(view: EditorView): boolean {

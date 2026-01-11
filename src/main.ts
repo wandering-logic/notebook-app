@@ -89,6 +89,13 @@ if (!editor) throw new Error("#editor not found");
 const view = Editor.mountEditor(editor);
 view.focus();
 
+// Click in empty space below content should focus and move cursor to end
+editor.addEventListener("click", (e) => {
+  if (e.target === editor) {
+    Editor.focusAtEnd(view);
+  }
+});
+
 document.querySelector("#edit-undo")?.addEventListener("click", () => {
   Editor.doUndo(view);
   view.focus();

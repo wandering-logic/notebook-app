@@ -7,7 +7,7 @@ import {
 import { history, redo, undo } from "prosemirror-history";
 import { keymap } from "prosemirror-keymap";
 import { Node } from "prosemirror-model";
-import { EditorState, Selection } from "prosemirror-state";
+import { EditorState, Selection, type Transaction } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { schema } from "./schema";
 
@@ -16,7 +16,76 @@ const markKeymap = keymap({
   "Mod-i": toggleMark(schema.marks.em),
 });
 
-const plugins = [history(), markKeymap, keymap(baseKeymap)];
+// Tab navigation between title, subtitle, and first block
+function tabNavigation(
+  state: EditorState,
+  dispatch?: (tr: Transaction) => void,
+) {
+  const { $from } = state.selection;
+  const grandparent = $from.node($from.depth - 1);
+
+  // Check if we're in title or subtitle (direct children of doc)
+  if (grandparent === state.doc) {
+    const pos = $from.before($from.depth);
+    const nodeIndex = state.doc.resolve(pos).index();
+
+    // If in title (index 0), move to subtitle (index 1)
+    // If in subtitle (index 1), move to first block (index 2)
+    if (nodeIndex < state.doc.childCount - 1) {
+      if (dispatch) {
+        let targetPos = 0;
+        for (let i = 0; i <= nodeIndex; i++) {
+          targetPos += state.doc.child(i).nodeSize;
+        }
+        // Position inside the next node
+        const tr = state.tr.setSelection(
+          Selection.near(state.doc.resolve(targetPos + 1)),
+        );
+        dispatch(tr);
+      }
+      return true;
+    }
+  }
+  return false;
+}
+
+function shiftTabNavigation(
+  state: EditorState,
+  dispatch?: (tr: Transaction) => void,
+) {
+  const { $from } = state.selection;
+  const grandparent = $from.node($from.depth - 1);
+
+  // Check if we're in title, subtitle, or a block (direct children of doc)
+  if (grandparent === state.doc) {
+    const pos = $from.before($from.depth);
+    const nodeIndex = state.doc.resolve(pos).index();
+
+    // If in subtitle or later, move to previous node
+    if (nodeIndex > 0) {
+      if (dispatch) {
+        let targetPos = 0;
+        for (let i = 0; i < nodeIndex - 1; i++) {
+          targetPos += state.doc.child(i).nodeSize;
+        }
+        // Position inside the previous node
+        const tr = state.tr.setSelection(
+          Selection.near(state.doc.resolve(targetPos + 1)),
+        );
+        dispatch(tr);
+      }
+      return true;
+    }
+  }
+  return false;
+}
+
+const navigationKeymap = keymap({
+  Tab: tabNavigation,
+  "Shift-Tab": shiftTabNavigation,
+});
+
+const plugins = [history(), markKeymap, navigationKeymap, keymap(baseKeymap)];
 
 // Change listeners per view
 const changeListeners = new WeakMap<EditorView, () => void>();

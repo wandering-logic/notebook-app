@@ -22,12 +22,16 @@ export const schema = new Schema({
         return ["h2", 0];
       },
     },
+    // Paragraph must come first in block group to be the default
+    paragraph: {
+      ...nodes.paragraph,
+      group: "block",
+    },
     // Section headings: level 1=Section (h3), 2=Subsection (h4), 3=Subsubsection (h5)
     section: {
       attrs: { level: { default: 1, validate: "number" } },
       content: "inline*",
       group: "block",
-      defining: true,
       parseDOM: [
         { tag: "h3", attrs: { level: 1 } },
         { tag: "h4", attrs: { level: 2 } },
@@ -36,10 +40,6 @@ export const schema = new Schema({
       toDOM(node) {
         return [`h${node.attrs.level + 2}`, 0];
       },
-    },
-    paragraph: {
-      ...nodes.paragraph,
-      group: "block",
     },
     code_block: {
       ...nodes.code_block,
